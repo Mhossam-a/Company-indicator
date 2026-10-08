@@ -5,6 +5,7 @@ know which company you are working on when a site has more than one.
 
 - Works on Frappe **v15 and v16**, with or without ERPNext.
 - Click the badge to open the Session Defaults dialog and switch company.
+- v15: shown in the top navbar. v16 has no top navbar, so it is shown in each page header (next to the page actions).
 - The navbar is flex based, so the badge sits on the right in LTR languages and on the left in RTL ones.
 - If a navbar list cannot be found, a small floating badge is shown in the bottom corner instead.
 

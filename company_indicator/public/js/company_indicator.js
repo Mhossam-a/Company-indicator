@@ -1,7 +1,11 @@
-// Company Indicator: shows the Company chosen in Session Defaults in the desk navbar,
+// Company Indicator: shows the Company chosen in Session Defaults in the desk header,
 // so it is always clear which company you are working on. Click it to change it.
-// Written to work on Frappe v15 and v16: it does not depend on one exact navbar layout.
-// If no navbar list is found it falls back to a small floating badge.
+//
+// Works on Frappe v15 and v16, which have different layouts:
+//   v15: top navbar          -> header.navbar ul.navbar-nav
+//   v16: no top navbar, every page has its own header -> .page-head .standard-items-section
+// The header is flex based, so the badge sits on the right in LTR languages and on the left
+// in RTL ones. If neither place is found a small floating badge is used instead.
 (function () {
 	const BADGE_ID = "company-indicator-badge";
 
@@ -17,11 +21,23 @@
 		}
 	}
 
-	function make_badge(company, floating) {
+	// returns { $parent, kind } for the place the badge should live in right now
+	function find_target() {
+		const $nav = $("header.navbar ul.navbar-nav").first();
+		if ($nav.length) return { $parent: $nav, kind: "navbar" };
+
+		// v16 keeps one .page-head per opened page in the DOM, only the current one is visible
+		const $head = $(".page-head:visible .standard-items-section").first();
+		if ($head.length) return { $parent: $head, kind: "page-head" };
+
+		return { $parent: $("body"), kind: "floating" };
+	}
+
+	function make_badge(company, kind) {
 		const $badge = $(
-			floating
-				? `<div id="${BADGE_ID}" class="company-indicator-floating"></div>`
-				: `<li class="nav-item d-flex align-items-center" id="${BADGE_ID}"></li>`
+			kind === "navbar"
+				? `<li class="nav-item d-flex align-items-center" id="${BADGE_ID}"></li>`
+				: `<div class="company-indicator d-flex align-items-center" id="${BADGE_ID}"></div>`
 		);
 		const $link = $(
 			`<a class="btn btn-default btn-sm" role="button" style="max-width:260px;cursor:pointer;">
@@ -30,8 +46,12 @@
 		);
 		$link.find(".company-name").text(company).attr("title", company);
 		$link.on("click", open_session_defaults);
-		$badge.append($link);
-		if (floating) {
+		$badge.append($link).attr("data-kind", kind);
+
+		if (kind === "page-head") {
+			// small gap from the neighbouring buttons, on whichever side faces them
+			$badge.css({ "margin-inline-end": "8px" });
+		} else if (kind === "floating") {
 			// inset-inline-end puts it on the left in RTL languages and on the right in LTR
 			$badge.css({ position: "fixed", bottom: "12px", "inset-inline-end": "12px", "z-index": 1030 });
 		}
@@ -46,23 +66,32 @@
 			$existing.remove();
 			return;
 		}
-		if ($existing.length) {
+
+		const target = find_target();
+		const in_place =
+			$existing.length &&
+			$existing.attr("data-kind") === target.kind &&
+			($existing.parent().is(target.$parent) || target.kind === "floating");
+
+		if (in_place) {
 			$existing.find(".company-name").text(company).attr("title", company);
 			return;
 		}
 
-		const $nav = $("header.navbar ul.navbar-nav, .navbar ul.navbar-nav").first();
-		if ($nav.length) {
-			$nav.prepend(make_badge(company, false));
-		} else if (document.body) {
-			$("body").append(make_badge(company, true));
+		// wrong place (e.g. v16 moved to another page) or not there yet: rebuild it
+		$existing.remove();
+		const $badge = make_badge(company, target.kind);
+		if (target.kind === "floating") {
+			target.$parent.append($badge);
+		} else {
+			target.$parent.prepend($badge);
 		}
 	}
 
 	$(document).on("startup page-change toolbar_setup", render);
 	$(function () {
 		setTimeout(render, 500);
-		// Frappe can rebuild the header after load, which drops the badge, so re-check
-		setInterval(render, 2000);
+		// Frappe rebuilds headers when you open pages, which drops the badge, so re-check
+		setInterval(render, 1500);
 	});
 })();
