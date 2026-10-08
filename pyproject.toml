@@ -1,0 +1,20 @@
+[project]
+name = "company_indicator"
+authors = [
+    { name = "mH", email = "mohammdhosssam168@gmail.com"}
+]
+description = "Shows the Company selected in Session Defaults in the desk navbar (Frappe/ERPNext v15 and v16)"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    # "frappe" # Installed and managed by bench.
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+# Frappe Cloud uses this to check the app is compatible with the bench
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0,<17.0.0"
